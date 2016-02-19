@@ -15,6 +15,7 @@ class Decoder(object):
         self.puzzleBounds = None
         self.corners = None
         self.puzzleImage = None
+        self.numberLocations = None
         self.puzzle = [[0 for i in range(9)] for i in range(9)]
 
     def decode(self):
@@ -60,15 +61,17 @@ class Decoder(object):
         img = self.puzzleImage
         img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,21,10)
         img = cv2.GaussianBlur(img, (41,41), 0)
-        vals = []
+        self.numberLocations = []
+        ocrImage = np.zeros((70,0), np.uint8)
         for p,q in ((x,y) for x in (i*100+50 for i in range(9)) for y in (i*100+50 for i in range(9))):
             if img[p][q] < 230:
-                vals.append((p,q))
+                self.numberLocations.append(((q-50)/100,(p-50)/100))
                 num = self.puzzleImage[p-35:p+35, q-35:q+35]
-                num = cv2.cvtColor(num, cv2.COLOR_BAYER_GR2RGB)
-                num = Image.fromarray(num)
-                self.puzzle[(q-50)/100][(p-50)/100] = pytesseract.image_to_string(num, config='-psm 10')
-                cv2.circle(img, (q,p), 3, (0,0,255))
+                ocrImage = np.concatenate((ocrImage, num), axis=1)
+        ocrImage = cv2.cvtColor(ocrImage, cv2.COLOR_BAYER_GR2RGB)
+        ocrImage = Image.fromarray(ocrImage)
+        for v, num in zip(self.numberLocations, pytesseract.image_to_string(ocrImage)):
+            self.puzzle[v[0]][v[1]] = int(num)
 
     def _drawContoursOnImage(self, contours, idx=-1, color=(0,255,0), lineWidth=2):
         cv2.drawContours(self.origImage, contours, idx, color, lineWidth)
