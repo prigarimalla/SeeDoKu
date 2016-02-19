@@ -3,11 +3,14 @@ import cv2
 from PIL import Image
 import pytesseract
 
-
 class Decoder(object):
     def __init__(self, image):
-        self.origImage = image
-        self.image = image
+        if isinstance(image, str):
+            self.image = cv2.imread(image, cv2.IMREAD_COLOR)
+            self.origImage = self.image
+        elif isinstance(image, np.ndarray):
+            self.origImage = image
+            self.image = image
         self.thresholdImage = None
         self.puzzleBounds = None
         self.corners = None
@@ -71,13 +74,3 @@ class Decoder(object):
         cv2.drawContours(self.origImage, contours, idx, color, lineWidth)
         for point in self.corners:
             cv2.circle(self.origImage, point, 25, (255,0,0), lineWidth)
-
-if __name__ == '__main__':
-    import sys
-    img = cv2.imread(sys.argv[1], cv2.IMREAD_COLOR)
-    d = Decoder(img)
-    d.decode()
-    print d.puzzle
-    cv2.imshow('img', d.puzzleImage)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
